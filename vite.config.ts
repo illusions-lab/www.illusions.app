@@ -1,5 +1,5 @@
 import { resolve } from "path";
-import { copyFileSync } from "fs";
+import { copyFileSync, existsSync, mkdirSync } from "fs";
 import { defineConfig } from "vite";
 import type { Plugin } from "vite";
 import Icons from "unplugin-icons/vite";
@@ -8,17 +8,28 @@ import { ViteImageOptimizer } from "vite-plugin-image-optimizer";
 /** Known page routes that have a corresponding directory with index.html */
 const PAGE_ROUTES = ["/downloads", "/policy"];
 
-/** Copy ../TERMS.md to public/ so it can be fetched at runtime */
+/** Copy TERMS.md to public/ so it can be fetched at runtime */
 function copyTerms(): Plugin {
-  const src = resolve(__dirname, "../TERMS.md");
+  const src = resolve(__dirname, "TERMS.md");
   const dest = resolve(__dirname, "public/TERMS.md");
+
+  const doCopy = () => {
+    if (!existsSync(src)) {
+      console.warn(`[copy-terms] Skipping: missing ${src}`);
+      return;
+    }
+    // Ensure public/ exists
+    mkdirSync(resolve(__dirname, "public"), { recursive: true });
+    copyFileSync(src, dest);
+  };
+
   return {
     name: "copy-terms",
     buildStart() {
-      copyFileSync(src, dest);
+      doCopy();
     },
     configureServer() {
-      copyFileSync(src, dest);
+      doCopy();
     },
   };
 }
